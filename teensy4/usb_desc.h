@@ -110,8 +110,229 @@ If these instructions are missing steps or could be improved, please
 let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
 */
 
+/*
+  Modular usb, so user can specify all that he wants
+  Defines for modules:
+    - USB_CUSTOM_RAWHID
+    - USB_CUSTOM_MOUSE
+    - USB_CUSTOM_KEYBOARD
+    - USB_CUSTOM_JOYSTICK
+*/
+#if defined(USB_CUSTOM)
+  
+  #ifdef USB_CUSTOM_VID
+    #define VENDOR_ID USB_CUSTOM_VID
+  #else
+    #define VENDOR_ID 0x16C0
+  #endif
 
-#if defined(USB_SERIAL)
+  #ifdef USB_CUSTOM_PID
+    #define PRODUCT_ID USB_CUSTOM_PID
+  #else
+    #define PRODUCT_ID 0x0480
+  #endif
+
+  #define MANUFACTURER_NAME       {}
+  #define MANUFACTURER_NAME_LEN   sizeof((char[])MANUFACTURER_NAME)
+  #define PRODUCT_NAME            {}
+  #define PRODUCT_NAME_LEN        sizeof((char[])PRODUCT_NAME)
+  #define EP0_SIZE                64
+
+  // Warning ! Order is critical
+  // Keyboard -> Mouse -> Rawhid -> Joystick -> Seremu.
+  #define _USB_IF_BASE 0
+  #if defined(USB_CUSTOM_KEYBOARD)
+    #define KEYBOARD_INTERFACE      _USB_IF_BASE
+    #define _USB_IF_AFTER_KEYBOARD  (_USB_IF_BASE + 1)
+  #else
+    #define _USB_IF_AFTER_KEYBOARD  _USB_IF_BASE
+  #endif
+  #if defined(USB_CUSTOM_MOUSE)
+    #define MOUSE_INTERFACE         _USB_IF_AFTER_KEYBOARD
+    #define _USB_IF_AFTER_MOUSE     (_USB_IF_AFTER_KEYBOARD + 1)
+  #else
+    #define _USB_IF_AFTER_MOUSE     _USB_IF_AFTER_KEYBOARD
+  #endif
+  #if defined(USB_CUSTOM_RAWHID)
+    #define RAWHID_INTERFACE        _USB_IF_AFTER_MOUSE
+    #define _USB_IF_AFTER_RAWHID    (_USB_IF_AFTER_MOUSE + 1)
+  #else
+    #define _USB_IF_AFTER_RAWHID    _USB_IF_AFTER_MOUSE
+  #endif
+  #if defined(USB_CUSTOM_JOYSTICK)
+    #define JOYSTICK_INTERFACE      _USB_IF_AFTER_RAWHID
+    #define _USB_IF_AFTER_JOYSTICK  (_USB_IF_AFTER_RAWHID + 1)
+  #else
+    #define _USB_IF_AFTER_JOYSTICK  _USB_IF_AFTER_RAWHID
+  #endif
+  #define SEREMU_INTERFACE          _USB_IF_AFTER_JOYSTICK
+  #define _USB_IF_AFTER_SEREMU      (_USB_IF_AFTER_JOYSTICK + 1)
+  #define NUM_INTERFACE             _USB_IF_AFTER_SEREMU
+
+  #ifdef USB_CUSTOM_RAWHID
+    #define RAWHID_TX_ENDPOINT    2
+    #define RAWHID_TX_SIZE        64
+    #define RAWHID_TX_INTERVAL    1
+    #define RAWHID_RX_ENDPOINT    3
+    #define RAWHID_RX_SIZE        64
+    #define RAWHID_RX_INTERVAL    1
+    #define RAWHID_USAGE_PAGE	    0xFFAB  // recommended: 0xFF00 to 0xFFFF
+    #define RAWHID_USAGE		      0x0200  // recommended: 0x0100 to 0xFFFF
+  #endif
+
+  #ifdef USB_CUSTOM_MOUSE
+    #define MOUSE_ENDPOINT        4
+    #define MOUSE_SIZE            8
+    #define MOUSE_INTERVAL        1
+  #endif
+
+  #ifdef USB_CUSTOM_JOYSTICK
+    #define JOYSTICK_ENDPOINT     7
+    #define JOYSTICK_SIZE         12  // 12 = normal, 64 = extreme joystick
+    #define JOYSTICK_INTERVAL     1
+  #endif
+
+  #ifdef USB_CUSTOM_KEYBOARD
+    #define KEYBOARD_ENDPOINT     6
+    #define KEYBOARD_SIZE         8
+    #define KEYBOARD_INTERVAL     1
+  #endif
+
+  #define SEREMU_TX_ENDPOINT      5
+  #define SEREMU_TX_SIZE          64
+  #define SEREMU_TX_INTERVAL      1
+  #define SEREMU_RX_ENDPOINT      5
+  #define SEREMU_RX_SIZE          32
+  #define SEREMU_RX_INTERVAL      2
+
+  #if defined(USB_CUSTOM_JOYSTICK)
+    #define NUM_ENDPOINTS 7   // joystick EP7
+  #elif defined(USB_CUSTOM_KEYBOARD)
+    #define NUM_ENDPOINTS 6   // keyboard EP6
+  #else
+    #define NUM_ENDPOINTS 5   // seremu on EP5 is highest
+  #endif
+
+  #define _EP_UNUSED (ENDPOINT_RECEIVE_UNUSED      + ENDPOINT_TRANSMIT_UNUSED)
+  #define _EP_RX_INT (ENDPOINT_RECEIVE_INTERRUPT   + ENDPOINT_TRANSMIT_UNUSED)
+  #define _EP_TX_INT (ENDPOINT_RECEIVE_UNUSED      + ENDPOINT_TRANSMIT_INTERRUPT)
+  #define _EP_BI_INT (ENDPOINT_RECEIVE_INTERRUPT   + ENDPOINT_TRANSMIT_INTERRUPT)
+
+  #ifdef USB_CUSTOM_RAWHID
+    #define ENDPOINT2_CONFIG _EP_TX_INT
+    #define ENDPOINT3_CONFIG _EP_RX_INT
+  #endif
+  #ifdef USB_CUSTOM_MOUSE
+    #define ENDPOINT4_CONFIG _EP_TX_INT
+  #endif
+  // SEREMU always on endpoint 5
+  #define ENDPOINT5_CONFIG _EP_BI_INT
+  #ifdef USB_CUSTOM_KEYBOARD
+    #define ENDPOINT6_CONFIG _EP_TX_INT
+  #endif
+  #ifdef USB_CUSTOM_JOYSTICK
+    #define ENDPOINT7_CONFIG _EP_TX_INT
+  #endif
+
+  // Fallback to unused
+  #ifndef ENDPOINT2_CONFIG
+    #define ENDPOINT2_CONFIG _EP_UNUSED
+  #endif
+  #ifndef ENDPOINT3_CONFIG
+    #define ENDPOINT3_CONFIG _EP_UNUSED
+  #endif
+  #ifndef ENDPOINT4_CONFIG
+    #define ENDPOINT4_CONFIG _EP_UNUSED
+  #endif
+  #ifndef ENDPOINT5_CONFIG
+    #define ENDPOINT5_CONFIG _EP_UNUSED
+  #endif
+  #if NUM_ENDPOINTS >= 6
+    #ifndef ENDPOINT6_CONFIG
+      #define ENDPOINT6_CONFIG _EP_UNUSED
+    #endif
+  #endif
+  #if NUM_ENDPOINTS >= 7
+    #ifndef ENDPOINT7_CONFIG
+      #define ENDPOINT7_CONFIG _EP_UNUSED
+    #endif
+  #endif
+
+  // Unlink interface macroses
+  #if defined(USB_CUSTOM_KEYBOARD)
+    enum { USB_CUSTOM_KEYBOARD_INTERFACE_CONST = KEYBOARD_INTERFACE };
+    #undef KEYBOARD_INTERFACE
+    #define KEYBOARD_INTERFACE USB_CUSTOM_KEYBOARD_INTERFACE_CONST
+  #endif
+  #if defined(USB_CUSTOM_JOYSTICK)
+    enum { USB_CUSTOM_JOYSTICK_INTERFACE_CONST = JOYSTICK_INTERFACE };
+    #undef JOYSTICK_INTERFACE
+    #define JOYSTICK_INTERFACE USB_CUSTOM_JOYSTICK_INTERFACE_CONST
+  #endif
+  #if defined(USB_CUSTOM_MOUSE)
+    enum { USB_CUSTOM_MOUSE_INTERFACE_CONST = MOUSE_INTERFACE };
+    #undef MOUSE_INTERFACE
+    #define MOUSE_INTERFACE USB_CUSTOM_MOUSE_INTERFACE_CONST
+  #endif
+  #if defined(USB_CUSTOM_RAWHID)
+    enum { USB_CUSTOM_RAWHID_INTERFACE_CONST = RAWHID_INTERFACE };
+    #undef RAWHID_INTERFACE
+    #define RAWHID_INTERFACE USB_CUSTOM_RAWHID_INTERFACE_CONST
+  #endif
+  enum { USB_CUSTOM_SEREMU_INTERFACE_CONST = SEREMU_INTERFACE };
+  #undef SEREMU_INTERFACE
+  #define SEREMU_INTERFACE USB_CUSTOM_SEREMU_INTERFACE_CONST
+
+  enum { USB_CUSTOM_NUM_INTERFACE_CONST = NUM_INTERFACE };
+  #undef NUM_INTERFACE
+  #define NUM_INTERFACE USB_CUSTOM_NUM_INTERFACE_CONST
+
+  // Unlink interface macroses
+  #if defined(ENDPOINT2_CONFIG)
+    enum { USB_CUSTOM_ENDPOINT2_CONFIG_CONST = ENDPOINT2_CONFIG };
+    #undef ENDPOINT2_CONFIG
+    #define ENDPOINT2_CONFIG USB_CUSTOM_ENDPOINT2_CONFIG_CONST
+  #endif
+  #if defined(ENDPOINT3_CONFIG)
+    enum { USB_CUSTOM_ENDPOINT3_CONFIG_CONST = ENDPOINT3_CONFIG };
+    #undef ENDPOINT3_CONFIG
+    #define ENDPOINT3_CONFIG USB_CUSTOM_ENDPOINT3_CONFIG_CONST
+  #endif
+  #if defined(ENDPOINT4_CONFIG)
+    enum { USB_CUSTOM_ENDPOINT4_CONFIG_CONST = ENDPOINT4_CONFIG };
+    #undef ENDPOINT4_CONFIG
+    #define ENDPOINT4_CONFIG USB_CUSTOM_ENDPOINT4_CONFIG_CONST
+  #endif
+  #if defined(ENDPOINT5_CONFIG)
+    enum { USB_CUSTOM_ENDPOINT5_CONFIG_CONST = ENDPOINT5_CONFIG };
+    #undef ENDPOINT5_CONFIG
+    #define ENDPOINT5_CONFIG USB_CUSTOM_ENDPOINT5_CONFIG_CONST
+  #endif
+  #if defined(ENDPOINT6_CONFIG)
+    enum { USB_CUSTOM_ENDPOINT6_CONFIG_CONST = ENDPOINT6_CONFIG };
+    #undef ENDPOINT6_CONFIG
+    #define ENDPOINT6_CONFIG USB_CUSTOM_ENDPOINT6_CONFIG_CONST
+  #endif
+  #if defined(ENDPOINT7_CONFIG)
+    enum { USB_CUSTOM_ENDPOINT7_CONFIG_CONST = ENDPOINT7_CONFIG };
+    #undef ENDPOINT7_CONFIG
+    #define ENDPOINT7_CONFIG USB_CUSTOM_ENDPOINT7_CONFIG_CONST
+  #endif
+
+  // Undef helpers
+  #undef _USB_IF_BASE
+  #undef _USB_IF_AFTER_KEYBOARD
+  #undef _USB_IF_AFTER_MOUSE
+  #undef _USB_IF_AFTER_RAWHID
+  #undef _USB_IF_AFTER_SEREMU
+  #undef _USB_IF_AFTER_KEYMEDIA
+  #undef _EP_UNUSED
+  #undef _EP_RX_INT
+  #undef _EP_TX_INT
+  #undef _EP_BI_INT
+
+
+#elif defined(USB_SERIAL)
   #define VENDOR_ID		0x16C0
   #define PRODUCT_ID		0x0483
   #define MANUFACTURER_NAME	{'T','e','e','n','s','y','d','u','i','n','o'}
