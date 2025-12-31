@@ -171,23 +171,31 @@ static int usb_mouse_transmit(const uint8_t *data, uint32_t len)
 }
 
 
-// Move the mouse.  x, y and wheel are -127 to 127.  Use 0 for no movement.
-int usb_mouse_move(int8_t x, int8_t y, int8_t wheel, int8_t horiz)
+// Move the mouse.  x, y from -32767 to 32767, wheel from -127 to 127.  Use 0 for no movement.
+int usb_mouse_move(int16_t x, int16_t y, int8_t wheel, int8_t horiz)
 {
-        //printf("move\n");
-        if (x == -128) x = -127;
-        if (y == -128) y = -127;
+        if (x == INT16_MIN) x++;
+        if (y == INT16_MIN) y++;
         if (wheel == -128) wheel = -127;
         if (horiz == -128) horiz = -127;
 
-	uint8_t buffer[6];
+	uint8_t buffer[8];
         buffer[0] = 1;
         buffer[1] = usb_mouse_buttons_state;
-        buffer[2] = x;
-        buffer[3] = y;
-        buffer[4] = wheel;
-        buffer[5] = horiz; // horizontal scroll
-	return usb_mouse_transmit(buffer, 6);
+        // Little endian
+        buffer[2] = (uint8_t)(x & 0xFF);
+        buffer[3] = (uint8_t)(x >> 8);
+        buffer[4] = (uint8_t)(y & 0xFF);
+        buffer[5] = (uint8_t)(y >> 8);
+        buffer[6] = wheel;
+        buffer[7] = horiz; // horizontal scroll
+	return usb_mouse_transmit(buffer, 8);
+}
+
+int usb_mouse_send_input(int16_t x, int16_t y, uint8_t buttons, int8_t wheel, int8_t horiz) 
+{
+        usb_mouse_buttons_state = buttons;
+        return usb_mouse_move(x, y, wheel, horiz);
 }
 
 int usb_mouse_position(uint16_t x, uint16_t y)

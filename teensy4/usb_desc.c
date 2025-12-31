@@ -245,6 +245,7 @@ static uint8_t keymedia_report_desc[] = {
 
 #ifdef MOUSE_INTERFACE
 // Mouse Protocol 1, HID 1.11 spec, Appendix B, page 59-60, with wheel extension
+// https://forum.pjrc.com/index.php?threads/usb_mouse_move-16-bit-x-and-y-request.68580/
 static uint8_t mouse_report_desc[] = {
         0x05, 0x01,                     // Usage Page (Generic Desktop)
         0x09, 0x02,                     // Usage (Mouse)
@@ -261,12 +262,18 @@ static uint8_t mouse_report_desc[] = {
         0x05, 0x01,                     //   Usage Page (Generic Desktop)
         0x09, 0x30,                     //   Usage (X)
         0x09, 0x31,                     //   Usage (Y)
+        0x16, 0x01, 0x80,               //   Logical Min (-32767)
+        0x26, 0xFF, 0x7F,               //   Logical Max (32767)
+        0x75, 0x10,                     //   Report Size (16)
+        0x95, 0x02,                     //   Report Count (2)
+        0x81, 0x06,                     //   Input (Data,Var,Rel)
+        0x05, 0x01,                     //   Usage Page (Generic Desktop)
         0x09, 0x38,                     //   Usage (Wheel)
-        0x15, 0x81,                     //   Logical Minimum (-127)
-        0x25, 0x7F,                     //   Logical Maximum (127)
-        0x75, 0x08,                     //   Report Size (8),
-        0x95, 0x03,                     //   Report Count (3),
-        0x81, 0x06,                     //   Input (Data, Variable, Relative)
+        0x15, 0x81,                     //   Logical Min (-127)
+        0x25, 0x7F,                     //   Logical Max (127)
+        0x75, 0x08,                     //   Report Size (8)
+        0x95, 0x01,                     //   Report Count (1)
+        0x81, 0x06,                     //   Input (Data,Var,Rel)
         0x05, 0x0C,                     //   Usage Page (Consumer)
         0x0A, 0x38, 0x02,               //   Usage (AC Pan)
         0x15, 0x81,                     //   Logical Minimum (-127)
