@@ -165,8 +165,12 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #else
     #define _USB_IF_AFTER_JOYSTICK  _USB_IF_AFTER_RAWHID
   #endif
-  #define SEREMU_INTERFACE          _USB_IF_AFTER_JOYSTICK
-  #define _USB_IF_AFTER_SEREMU      (_USB_IF_AFTER_JOYSTICK + 1)
+  #if defined(USB_CUSTOM_SEREMU)
+    #define SEREMU_INTERFACE          _USB_IF_AFTER_JOYSTICK
+    #define _USB_IF_AFTER_SEREMU      (_USB_IF_AFTER_JOYSTICK + 1)
+  #else
+    #define _USB_IF_AFTER_SEREMU      _USB_IF_AFTER_JOYSTICK
+  #endif
   #define NUM_INTERFACE             _USB_IF_AFTER_SEREMU
 
   #ifdef USB_CUSTOM_RAWHID
@@ -198,12 +202,14 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
     #define KEYBOARD_INTERVAL     1
   #endif
 
-  #define SEREMU_TX_ENDPOINT      5
-  #define SEREMU_TX_SIZE          64
-  #define SEREMU_TX_INTERVAL      1
-  #define SEREMU_RX_ENDPOINT      5
-  #define SEREMU_RX_SIZE          32
-  #define SEREMU_RX_INTERVAL      2
+  #if defined(USB_CUSTOM_SEREMU)
+    #define SEREMU_TX_ENDPOINT      5
+    #define SEREMU_TX_SIZE          64
+    #define SEREMU_TX_INTERVAL      1
+    #define SEREMU_RX_ENDPOINT      5
+    #define SEREMU_RX_SIZE          32
+    #define SEREMU_RX_INTERVAL      2
+  #endif
 
   #if defined(USB_CUSTOM_JOYSTICK)
     #define NUM_ENDPOINTS 7   // joystick EP7
@@ -225,8 +231,10 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #ifdef USB_CUSTOM_MOUSE
     #define ENDPOINT4_CONFIG _EP_TX_INT
   #endif
-  // SEREMU always on endpoint 5
-  #define ENDPOINT5_CONFIG _EP_BI_INT
+  #if defined(USB_CUSTOM_SEREMU)
+    // SEREMU always on endpoint 5
+    #define ENDPOINT5_CONFIG _EP_BI_INT
+  #endif
   #ifdef USB_CUSTOM_KEYBOARD
     #define ENDPOINT6_CONFIG _EP_TX_INT
   #endif
@@ -279,9 +287,11 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
     #undef RAWHID_INTERFACE
     #define RAWHID_INTERFACE USB_CUSTOM_RAWHID_INTERFACE_CONST
   #endif
-  enum { USB_CUSTOM_SEREMU_INTERFACE_CONST = SEREMU_INTERFACE };
-  #undef SEREMU_INTERFACE
-  #define SEREMU_INTERFACE USB_CUSTOM_SEREMU_INTERFACE_CONST
+  #if defined(SEREMU_INTERFACE)
+    enum { USB_CUSTOM_SEREMU_INTERFACE_CONST = SEREMU_INTERFACE };
+    #undef SEREMU_INTERFACE
+    #define SEREMU_INTERFACE USB_CUSTOM_SEREMU_INTERFACE_CONST
+  #endif
 
   enum { USB_CUSTOM_NUM_INTERFACE_CONST = NUM_INTERFACE };
   #undef NUM_INTERFACE
@@ -325,7 +335,6 @@ let me know?  http://forum.pjrc.com/forums/4-Suggestions-amp-Bug-Reports
   #undef _USB_IF_AFTER_MOUSE
   #undef _USB_IF_AFTER_RAWHID
   #undef _USB_IF_AFTER_SEREMU
-  #undef _USB_IF_AFTER_KEYMEDIA
   #undef _EP_UNUSED
   #undef _EP_RX_INT
   #undef _EP_TX_INT
